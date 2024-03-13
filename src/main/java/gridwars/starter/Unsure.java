@@ -7,43 +7,39 @@ import cern.ais.gridwars.api.command.MovementCommand;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
-
-import static java.lang.Math.floor;
-
 
 /**
  * Simple bot that expands into all directions if there is a cell that does not belong to the bot
  */
 
-public class CheckerboardBotV4 implements PlayerBot {
+public class Unsure implements PlayerBot {
     Coordinates initialCoordinates;
 
     int state = 0;
+    double populationSoftLimit;
 
-    //private BotState state = new ReproduceState();
 
-    //public void previousState();
+
     public void getNextCommands(UniverseView universeView, List<MovementCommand> commandList) {
+
         List<Coordinates> myCells = universeView.getMyCells();
-        if ((universeView.getCurrentTurn() == 1) || (universeView.getCurrentTurn() == 2)) {
+        if (initialCoordinates == null) {
             this.initialCoordinates = myCells.get(0);
         }
 
-        double populationSoftLimit;
-        // Soft limit ensure that we get maximum benefit from the growth rate
-        populationSoftLimit = 0.600625; //0.600625
 
-        if (universeView.getCurrentTurn() > 60) {
+        // Soft limit ensure that we get maximum benefit from the growth rate
+        populationSoftLimit = 0.59; //0.600625
+
+        if (universeView.getCurrentTurn() > 20) {
             this.state = 1;
-            //populationSoftLimit = 0.600625;
         }
 
         for (Coordinates cell : myCells) {
             int currentPopulation = universeView.getPopulation(cell);
-            // splits population into 4 equal parts
-            int split = 4;
-            int usablePopulation = currentPopulation - 4;
+
+            int usablePopulation = currentPopulation - Math.max(5, (int) (Math.sqrt((double) universeView.getCurrentTurn() / 4)));
+            //int usablePopulation = currentPopulation - 4;
             boolean NearbyEnemyUp = false;
             boolean NearbyEnemyDown = false;
             boolean NearbyEnemyLeft = false;
@@ -62,12 +58,7 @@ public class CheckerboardBotV4 implements PlayerBot {
             boolean OnTop = false;
             boolean OnBottom = false;
 
-
-
-            double attackSplit = 1.79;
-
-            Random rand = new Random();
-            int rand_direction = rand.nextInt(4);
+            double attackSplit = 2;
 
             List< MovementCommand.Direction> outerDirections = new ArrayList<>();
             List< MovementCommand.Direction> innerDirections = new ArrayList<>();
@@ -94,9 +85,8 @@ public class CheckerboardBotV4 implements PlayerBot {
             } else if ((cell.getX() < initialCoordinates.getX()) && (cell.getY() == initialCoordinates.getY())) {
                 OnTheLeft = true;
             }
+
             if (this.state == 1){
-
-
                 // if the population of the current box exceeds 20 (2.0/0.1), we enter a phase that splits our population to expand the territory
                 if (usablePopulation > (populationSoftLimit / (universeView.getGrowthRate() - 1))) {
                     // this loop looks for enemies within a certain distance, if an enemy box is found, it breaks out of the loop.
@@ -126,13 +116,12 @@ public class CheckerboardBotV4 implements PlayerBot {
                     }
                     // if out population has hit the limit, split into 5 equal parts, so we can solidify the center
 
-                    if (usablePopulation >= (universeView.getMaximumPopulation()/4.5)){
+                    if (usablePopulation >= (universeView.getMaximumPopulation() / 4.85)) {
 
                         for (MovementCommand.Direction direction : MovementCommand.Direction.values()) {
-                            commandList.add(new MovementCommand(cell, direction, (usablePopulation - 3) / 4));
+                            commandList.add(new MovementCommand(cell, direction, (usablePopulation - 1) / 4));
                         }
-                        //commandList.add(new MovementCommand(cell, MovementCommand.Direction.UP, 47));
-                        //commandList.add(new MovementCommand(cell, MovementCommand.Direction.RIGHT, 47));
+
                     } else {
 
                         // Check left, right, up, down for cells that don't belong to me
@@ -140,7 +129,6 @@ public class CheckerboardBotV4 implements PlayerBot {
                             if (!universeView.belongsToMe(cell.getNeighbour(direction))) {
                                 outerSplit++;
                                 outerDirections.add(direction);
-                                ;
                             } else if ((universeView.belongsToMe(cell.getNeighbour(direction)))) {
                                 innerDirections.add(direction);
                                 innerSplit++;
@@ -170,8 +158,12 @@ public class CheckerboardBotV4 implements PlayerBot {
                                 commandList.add(new MovementCommand(cell, MovementCommand.Direction.RIGHT, usablePopulation / 2));
                                 commandList.add(new MovementCommand(cell, MovementCommand.Direction.DOWN, usablePopulation / 2));
                             } else if (center) {
-                                for (MovementCommand.Direction direction : innerDirections) {
-                                    commandList.add(new MovementCommand(cell, direction, usablePopulation / innerSplit));
+                                if (usablePopulation > 4) {
+                                    for (MovementCommand.Direction direction : innerDirections) {
+                                        commandList.add(new MovementCommand(cell, direction, usablePopulation / innerSplit));
+                                    }
+                                } else {
+                                    break;
                                 }
                             } else if (OnTop) {
                                 commandList.add(new MovementCommand(cell, MovementCommand.Direction.RIGHT, usablePopulation / 3));
@@ -179,22 +171,22 @@ public class CheckerboardBotV4 implements PlayerBot {
                                 commandList.add(new MovementCommand(cell, MovementCommand.Direction.LEFT, usablePopulation / 3));
                             } else if (OnBottom) {
                                 commandList.add(new MovementCommand(cell, MovementCommand.Direction.RIGHT, usablePopulation / 3));
-                                commandList.add(new MovementCommand(cell, MovementCommand.Direction.DOWN, usablePopulation /3));
+                                commandList.add(new MovementCommand(cell, MovementCommand.Direction.DOWN, usablePopulation / 3));
                                 commandList.add(new MovementCommand(cell, MovementCommand.Direction.LEFT, usablePopulation / 3));
                             } else if (OnTheLeft) {
                                 commandList.add(new MovementCommand(cell, MovementCommand.Direction.DOWN, usablePopulation / 3));
                                 commandList.add(new MovementCommand(cell, MovementCommand.Direction.UP, usablePopulation / 3));
-                                commandList.add(new MovementCommand(cell, MovementCommand.Direction.LEFT, usablePopulation /3));
+                                commandList.add(new MovementCommand(cell, MovementCommand.Direction.LEFT, usablePopulation / 3));
                             } else if (OnTheRight) {
-                                commandList.add(new MovementCommand(cell, MovementCommand.Direction.RIGHT, usablePopulation /3));
+                                commandList.add(new MovementCommand(cell, MovementCommand.Direction.RIGHT, usablePopulation / 3));
                                 commandList.add(new MovementCommand(cell, MovementCommand.Direction.UP, usablePopulation / 3));
                                 commandList.add(new MovementCommand(cell, MovementCommand.Direction.DOWN, usablePopulation / 3));
                             }
-                        } else if (Outer){
+                        } else if (Outer) {
                             for (MovementCommand.Direction direction : outerDirections) {
                                 commandList.add(new MovementCommand(cell, direction, usablePopulation / outerSplit));
                             }
-                        } else if (corner){
+                        } else if (corner) {
                             for (MovementCommand.Direction direction : outerDirections) {
                                 commandList.add(new MovementCommand(cell, direction, usablePopulation / 2));
                             }
@@ -204,13 +196,18 @@ public class CheckerboardBotV4 implements PlayerBot {
                     }
                 }
             } else {
-                if (usablePopulation > (populationSoftLimit / (universeView.getGrowthRate() - 1))) {
-                    // Check left, right, up, down for cells that don't belong to me
+                if (universeView.getCurrentTurn() == 1 || universeView.getCurrentTurn() == 2) {
+                    commandList.add(new MovementCommand(cell, MovementCommand.Direction.UP, 20));
+                    commandList.add(new MovementCommand(cell, MovementCommand.Direction.DOWN, 25));
+                    commandList.add(new MovementCommand(cell, MovementCommand.Direction.LEFT, 25));
+                    commandList.add(new MovementCommand(cell, MovementCommand.Direction.RIGHT, 25));
+                    break;
+                }
+                if (usablePopulation > 0) {
                     for (MovementCommand.Direction direction : MovementCommand.Direction.values()) {
                         if (!universeView.belongsToMe(cell.getNeighbour(direction))) {
                             outerSplit++;
                             outerDirections.add(direction);
-                            ;
                         } else if ((universeView.belongsToMe(cell.getNeighbour(direction)))) {
                             innerDirections.add(direction);
                             innerSplit++;
@@ -225,58 +222,58 @@ public class CheckerboardBotV4 implements PlayerBot {
                     } else {
                         Outer = true;
                     }
-                    // Expand
-                    if (Inner) {
-                        if (FacingLeftUp) {
-                            commandList.add(new MovementCommand(cell, MovementCommand.Direction.LEFT, usablePopulation / 2));
-                            commandList.add(new MovementCommand(cell, MovementCommand.Direction.UP, usablePopulation / 2));
-                        } else if (FacingLeftDown) {
-                            commandList.add(new MovementCommand(cell, MovementCommand.Direction.LEFT, usablePopulation / 2));
-                            commandList.add(new MovementCommand(cell, MovementCommand.Direction.DOWN, usablePopulation / 2));
-                        } else if (FacingRightUp) {
-                            commandList.add(new MovementCommand(cell, MovementCommand.Direction.RIGHT, usablePopulation / 2));
-                            commandList.add(new MovementCommand(cell, MovementCommand.Direction.UP, usablePopulation / 2));
-                        } else if (FacingRightDown) {
-                            commandList.add(new MovementCommand(cell, MovementCommand.Direction.RIGHT, usablePopulation / 2));
-                            commandList.add(new MovementCommand(cell, MovementCommand.Direction.DOWN, usablePopulation / 2));
-                        } else if (center) {
-                            for (MovementCommand.Direction direction : innerDirections) {
-                                commandList.add(new MovementCommand(cell, direction, usablePopulation / innerSplit));
+                    if(Inner){
+                        for (int i = 0; i < innerDirections.size(); i++) {
+                            MovementCommand.Direction direction = innerDirections.get(i);
+                            boolean isMine = universeView.belongsToMe(cell.getNeighbour(direction));
+                            boolean isEmpty = universeView.isEmpty(cell.getNeighbour(direction));
+
+                            int neighboursPopulation = (isMine && !isEmpty) ? universeView.getPopulation(cell.getNeighbour(direction)) : 0;
+
+                            int movePopulation = Math.min(usablePopulation / (innerDirections.size() - i), 100 - neighboursPopulation);
+
+                            if (movePopulation > 0 && neighboursPopulation + movePopulation >= 5) {
+                                usablePopulation -= movePopulation;
+                                commandList.add(new MovementCommand(cell, direction, movePopulation));
                             }
-                        } else if (OnTop) {
-                            //commandList.add(new MovementCommand(cell, MovementCommand.Direction.RIGHT, usablePopulation / 3));
-                            commandList.add(new MovementCommand(cell, MovementCommand.Direction.UP, usablePopulation ));
-                            //commandList.add(new MovementCommand(cell, MovementCommand.Direction.LEFT, usablePopulation / 3));
-                        } else if (OnBottom) {
-                            //commandList.add(new MovementCommand(cell, MovementCommand.Direction.RIGHT, usablePopulation / 3));
-                            commandList.add(new MovementCommand(cell, MovementCommand.Direction.DOWN, usablePopulation ));
-                            //commandList.add(new MovementCommand(cell, MovementCommand.Direction.LEFT, usablePopulation / 3));
-                        } else if (OnTheLeft) {
-                            //commandList.add(new MovementCommand(cell, MovementCommand.Direction.DOWN, usablePopulation / 3));
-                            //commandList.add(new MovementCommand(cell, MovementCommand.Direction.UP, usablePopulation / 3));
-                            commandList.add(new MovementCommand(cell, MovementCommand.Direction.LEFT, usablePopulation ));
-                        } else if (OnTheRight) {
-                            commandList.add(new MovementCommand(cell, MovementCommand.Direction.RIGHT, usablePopulation ));
-                            //commandList.add(new MovementCommand(cell, MovementCommand.Direction.UP, usablePopulation / 3));
-                            //commandList.add(new MovementCommand(cell, MovementCommand.Direction.DOWN, usablePopulation / 3));
                         }
                     } else if (Outer) {
-                        for (MovementCommand.Direction direction : outerDirections) {
-                            commandList.add(new MovementCommand(cell, direction, usablePopulation / outerSplit));
-                        }
-                    } else if (corner) {
-                        for (MovementCommand.Direction direction : outerDirections) {
-                            commandList.add(new MovementCommand(cell, direction, usablePopulation / 2));
+                        for (int i = 0; i < outerDirections.size(); i++) {
+                            MovementCommand.Direction direction = outerDirections.get(i);
+                            boolean isMine = universeView.belongsToMe(cell.getNeighbour(direction));
+                            boolean isEmpty = universeView.isEmpty(cell.getNeighbour(direction));
+
+                            int neighboursPopulation = (isMine && !isEmpty) ? universeView.getPopulation(cell.getNeighbour(direction)) : 0;
+
+                            int movePopulation = Math.min(usablePopulation / (outerDirections.size() - i), 100 - neighboursPopulation);
+
+                            if (movePopulation > 0 && neighboursPopulation + movePopulation >= 5) {
+                                usablePopulation -= movePopulation;
+                                commandList.add(new MovementCommand(cell, direction, movePopulation));
+                            }
                         }
                     } else {
-                        for (MovementCommand.Direction direction : MovementCommand.Direction.values()) {
-                            commandList.add(new MovementCommand(cell, direction, usablePopulation / 4));
+                        for (int i = 0; i < outerDirections.size(); i++) {
+                            MovementCommand.Direction direction = outerDirections.get(i);
+                            boolean isMine = universeView.belongsToMe(cell.getNeighbour(direction));
+                            boolean isEmpty = universeView.isEmpty(cell.getNeighbour(direction));
+
+                            int neighboursPopulation = (isMine && !isEmpty) ? universeView.getPopulation(cell.getNeighbour(direction)) : 0;
+
+                            int movePopulation = Math.min(usablePopulation / (outerDirections.size() - i), 100 - neighboursPopulation);
+
+                            if (movePopulation > 0 && neighboursPopulation + movePopulation >= 5) {
+                                usablePopulation -= movePopulation;
+                                commandList.add(new MovementCommand(cell, direction, movePopulation));
+                            }
                         }
                     }
-                }
 
+                }
             }
         }
+
+
 
     }
 }
