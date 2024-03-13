@@ -31,7 +31,7 @@ public class Unsure implements PlayerBot {
         // Soft limit ensure that we get maximum benefit from the growth rate
         populationSoftLimit = 0.59; //0.600625
 
-        if (universeView.getCurrentTurn() > 20) {
+        if (universeView.getCurrentTurn() > 18) {
             this.state = 1;
         }
 
@@ -116,7 +116,7 @@ public class Unsure implements PlayerBot {
                     }
                     // if out population has hit the limit, split into 5 equal parts, so we can solidify the center
 
-                    if (usablePopulation >= (universeView.getMaximumPopulation() / 4.85)) {
+                    if (usablePopulation >= (universeView.getMaximumPopulation() / 4.95)) {
 
                         for (MovementCommand.Direction direction : MovementCommand.Direction.values()) {
                             commandList.add(new MovementCommand(cell, direction, (usablePopulation - 1) / 4));
@@ -163,7 +163,7 @@ public class Unsure implements PlayerBot {
                                         commandList.add(new MovementCommand(cell, direction, usablePopulation / innerSplit));
                                     }
                                 } else {
-                                    break;
+                                    commandList.add(new MovementCommand(cell, MovementCommand.Direction.UP, usablePopulation));
                                 }
                             } else if (OnTop) {
                                 commandList.add(new MovementCommand(cell, MovementCommand.Direction.RIGHT, usablePopulation / 3));
