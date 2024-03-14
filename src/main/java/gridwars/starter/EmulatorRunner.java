@@ -15,8 +15,8 @@ public class EmulatorRunner {
         // CheckerboardBotV2 redBot = new CheckerboardBotV2();
         // CheckerboardBotV3 blueBot = new CheckerboardBotV3();
         // CheckerboardBotV3 redBot = new CheckerboardBotV3();
-        UnsureV2 blueBot = new UnsureV2();
-        Unsure redBot = new Unsure();
+        UnsureV4 blueBot = new UnsureV4();
+        UnsureV5 redBot = new UnsureV5();
 
         Emulator.playMatch(blueBot, redBot);
     }

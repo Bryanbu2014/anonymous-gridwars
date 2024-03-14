@@ -7,7 +7,7 @@ import cern.ais.gridwars.api.command.MovementCommand;
 import java.util.ArrayList;
 import java.util.List;
 
-public class UnsureV2 implements PlayerBot {
+public class Lapsap implements PlayerBot {
     private Coordinates initialCoordinates;
     private int state = 0;
     private double populationSoftLimit = 0.59;
